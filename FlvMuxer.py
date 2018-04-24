@@ -4,7 +4,39 @@
 import os
 import sys
 
-type_code = {'meta':18, 'video': 9, 'audio': 8, 'all': 0}
+type_code = {'meta':18, 'video': 9, 'audio': 8}
+
+audio_sound_format = [
+    'Linear PCM, platform endian',
+    'ADPCM',
+    'MP3',
+    'Linear PCM, little endian',
+    'Nellymoser 16kHz mono',
+    'Nellymoser 8kHz mono',
+    'Nellymoser',
+    'G.711 A-law logarithmic PCM',
+    'G.711 mu-law logarithmic PCM',
+    'reserved',
+    'AAC',
+    'Speex',
+    'unknown',
+    'unknown',
+    'MP3 8kHz',
+    'Device-specific sound']
+
+audio_sound_rate = ['5.5kHz', '11kHz', '22kHz', '44kHz']
+
+audio_sound_size = ['8-bit', '16-bit']
+
+audio_sound_type = ['Mono', 'Stereo']
+
+AAC_type = ['AAC header', 'AAC raw']
+
+video_frame_type = ['', 'key frame', 'inter frame', 'disposable inter frame', 'generated key frame', 'video info/command frame'] + [''] * 11
+
+video_codec_ID = ['unknown', 'unknown', 'Sorenson H.263', 'Screen video', 'On2 VP6', 'On2 VP6 with alpha channel', 'screen video version 2', 'H.264/AVC'] + ['unknown'] * 9
+
+AVC_packet_type = ['264 header', '264 raw', '264 sequence end'] + ['unknown'] * 13
 
 class FlvTag():
     def __init__(self):
@@ -26,7 +58,10 @@ class FlvMuxer():
         self.input_file = None
         self.output_file = None
         self.tag_index = 0
-        self.write_header_flag = False
+        self.audio_info = ''
+        self.video_info = ''
+        self.meta_info = ''
+        self.duration = 0
 
     def __del__(self):
         if self.input_file is not None:
@@ -82,6 +117,23 @@ class FlvMuxer():
         f.write(header)
         return True
 
+    def __parse_data(self, tag, data):
+        if tag.type == 8: # audio tag
+            aformat = audio_sound_format[(data[0] & 0xF0) >> 4]
+            rate = audio_sound_rate[(data[0] & 0x0C) >> 2]
+            size = audio_sound_size[(data[0] & 0x02) >> 1]
+            atype = audio_sound_type[data[0] & 0x01]
+            if aformat == 'AAC':
+                tag.data_info = AAC_type[data[1]]
+            self.audio_info = aformat + ' ' + rate + ' ' + size + ' ' + atype
+        elif tag.type == 9: # video tag
+            tag.data_info = video_frame_type[(data[0] & 0xF0) >> 4]
+            codec = video_codec_ID[data[0] & 0x0F]
+            if codec == 'H.264/AVC':
+                time = (data[2] << 16) + (data[3] << 8) + data[4]
+                tag.data_info = tag.data_info + ' ' + AVC_packet_type[data[1]] + ' cts: ' + str(time)
+            self.video_info = codec
+
     """
     Read 1 FLV tag
     with_data = True: return complete tag
@@ -103,12 +155,24 @@ class FlvMuxer():
         tag.position = f.tell() - 11
         self.tag_index += 1
         tag.index = self.tag_index
+        if self.duration < tag.timestamp:
+            self.duration = tag.timestamp
 
+        data = b''
         if with_data:
             tag.data = f.read(tag.size)
+            data = tag.data
             f.seek(4, 1)
         else:
-            f.seek(tag.size + 4, 1)
+            size = tag.size + 4
+            if tag.type == 9:
+                data = f.read(5)
+                size -= 5
+            elif tag.type == 8:
+                data = f.read(2)
+                size -= 2
+            f.seek(size, 1)
+        self.__parse_data(tag, data)
         return tag
 
     """

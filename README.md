@@ -8,5 +8,5 @@ Core class
 Print movie infomation.
 
 Usage:
-`./printInfo.py input.flv [all(default)/video/audio/meta]`
+`./printInfo.py input.flv [all(default)/video/audio/metai/brief]`
 

@@ -130,8 +130,10 @@ class FlvMuxer():
             tag.data_info = video_frame_type[(data[0] & 0xF0) >> 4]
             codec = video_codec_ID[data[0] & 0x0F]
             if codec == 'H.264/AVC':
-                time = (data[2] << 16) + (data[3] << 8) + data[4]
-                tag.data_info = tag.data_info + ' ' + AVC_packet_type[data[1]] + ' cts: ' + str(time)
+                tag.data_info = tag.data_info + '|' + AVC_packet_type[data[1]]
+                if AVC_packet_type[data[1]] == '264 raw':
+                    time = (data[2] << 16) + (data[3] << 8) + data[4]
+                    tag.data_info = tag.data_info + '|cts: ' + str(time)
             self.video_info = codec
 
     """

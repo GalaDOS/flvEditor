@@ -8,5 +8,10 @@ Core class
 Print movie infomation.
 
 Usage:
-`./printInfo.py input.flv [all(default)/video/audio/metai/brief]`
+`./printInfo.py input.flv [all(default)/video/audio/meta/brief]`
 
+* **edit.py**:
+Cut and merge flv movies.(developing)
+
+Usage:
+`./edit.py -add input1.flv [-ss n(sec)] [-to n(sec)] [-add input2.flv] ... -out output.flv`

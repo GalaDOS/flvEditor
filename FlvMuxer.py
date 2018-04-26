@@ -79,6 +79,17 @@ class FlvMuxer():
             return False
         return self.__skip_flv_header()
 
+    def close_input_file(self):
+        if self.input_file:
+            self.input_file.close()
+            self.input_file = None
+        self.input_filename = ''
+        self.tag_index = 0
+        self.video_info = ''
+        self.audio_info = ''
+        self.meta_info = ''
+        self.duration = 0
+
     def open_output_file(self, filename, has_video = True, has_audio = True):
         self.output_filename = filename
         try:
@@ -117,6 +128,13 @@ class FlvMuxer():
         f.write(header)
         return True
 
+    def write_empty_meta(self):
+        meta = b'\x12\x00\x00\x15\x00\x00\x00\x00\x00\x00\x00\x02\x00\x0AonMetaData\x08\x00\x00\x00\x00\x00\x00\x09\x00\x00\x00\x20'
+        if self.output_file:
+            self.output_file.write(meta)
+            return True
+        return False
+
     def __parse_data(self, tag, data):
         if tag.type == 8: # audio tag
             aformat = audio_sound_format[(data[0] & 0xF0) >> 4]
@@ -124,16 +142,16 @@ class FlvMuxer():
             size = audio_sound_size[(data[0] & 0x02) >> 1]
             atype = audio_sound_type[data[0] & 0x01]
             if aformat == 'AAC':
-                tag.data_info = AAC_type[data[1]]
+                tag.data_info = [AAC_type[data[1]]]
             self.audio_info = aformat + ' ' + rate + ' ' + size + ' ' + atype
         elif tag.type == 9: # video tag
             tag.data_info = video_frame_type[(data[0] & 0xF0) >> 4]
             codec = video_codec_ID[data[0] & 0x0F]
             if codec == 'H.264/AVC':
-                tag.data_info = tag.data_info + '|' + AVC_packet_type[data[1]]
+                tag.data_info = [tag.data_info, AVC_packet_type[data[1]]]
                 if AVC_packet_type[data[1]] == '264 raw':
                     time = (data[2] << 16) + (data[3] << 8) + data[4]
-                    tag.data_info = tag.data_info + '|cts: ' + str(time)
+                    tag.data_info.append('cts: ' + str(time))
             self.video_info = codec
 
     """

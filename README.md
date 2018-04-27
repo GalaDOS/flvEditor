@@ -20,3 +20,12 @@ Cut and merge flv movies.
 
 Usage:
 `./edit.py -add input1.flv [-ss n(sec)] [-to n(sec)] [-add input2.flv] ... -out output.flv`
+
+
+* **flv2h264.py**:
+
+Convert a flv file to H.264 stream.
+
+Usage:
+`./flv2h264.py input.flv output.264`
+

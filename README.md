@@ -29,3 +29,10 @@ Convert a flv file to H.264 stream.
 Usage:
 `./flv2h264.py input.flv output.264`
 
+
+* **checkTimestamp.py**:
+
+Check if the timestamp is valid.
+
+Usage:
+`./checkTimestamp.py input.flv`
